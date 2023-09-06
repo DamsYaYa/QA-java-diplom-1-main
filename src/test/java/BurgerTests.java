@@ -1,64 +1,100 @@
 import praktikum.*;
 
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
-import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Random;
+
 import static org.junit.Assert.assertEquals;
+import static org.mockito.Mockito.when;
+import static praktikum.IngredientType.FILLING;
 
 
 @RunWith(MockitoJUnitRunner.class)
 public class BurgerTests {
-    float ingredientPrice = 200;
-    float bunPrice = 100;
-    float burgerPrice = 400;
+    Burger burger;
 
+    Database database = new Database();
     @Mock
     Bun bun;
-
     @Mock
     Ingredient ingredient;
+    @Mock
+    Ingredient anotherIngredient;
 
-    @Test
-    public void getPriceTest(){
-        Burger burger = new Burger();
-
-        burger.setBuns(bun);
-        burger.addIngredient(ingredient);
-
-        Mockito.when(bun.getPrice()).thenReturn(bunPrice);
-        Mockito.when(ingredient.getPrice()).thenReturn(ingredientPrice);
-
-        float actual = burger.getPrice();
-        float expected = burgerPrice;
-        assertEquals("price of burger is uncorrected", expected, actual, 0);
+    @Before
+    public void setUp() {
+        burger = new Burger();
     }
 
     @Test
-    public void getReceiptTest(){
+    public void setBunsTest() {
+        burger.setBuns(bun);
+        assertEquals(bun, burger.bun);
+    }
 
-        Burger burger = new Burger();
+    @Test
+    public void addIngredientTest() {
+        int expected = 1;
+        burger.addIngredient(ingredient);
+        assertEquals(expected, burger.ingredients.size());
+    }
+
+    @Test
+    public void removeIngredientTest() {
+        int expected = 0;
+        burger.addIngredient(ingredient);
+        burger.removeIngredient(0);
+        assertEquals(expected, burger.ingredients.size());
+    }
+
+    @Test
+    public void moveIngredientTest() {
+        burger.ingredients.addAll(Arrays.asList(ingredient, anotherIngredient));
+        List<Ingredient> actual = new ArrayList<>(Arrays.asList(anotherIngredient, ingredient));
+        burger.moveIngredient(0, 1);
+        assertEquals(actual, burger.ingredients);
+    }
+
+    @Test
+    public void getPriceBurgerTest() {
         burger.setBuns(bun);
         burger.addIngredient(ingredient);
+        when(bun.getPrice()).thenReturn(200F);
+        when(ingredient.getPrice()).thenReturn(100F);
+        assertEquals(500, burger.getPrice(), 0);
+    }
+
+    @Test
+    public void getReceiptTest() {
+        burger.setBuns(bun);
+        burger.ingredients.add(ingredient);
+        when(bun.getName()).thenReturn("Сладкая булочка");
+        when(bun.getPrice()).thenReturn(100F);
+        when(ingredient.getType()).thenReturn(FILLING);
+        when(ingredient.getName()).thenReturn("Котлета");
+        when(ingredient.getPrice()).thenReturn(500F);
+        String expected = String.format("(==== %s ====)%n", bun.getName()) +
+                String.format("= %s %s =%n", ingredient.getType().toString().toLowerCase(), ingredient.getName()) +
+                String.format("(==== %s ====)%n", bun.getName()) +
+                String.format("%nPrice: %f%n", burger.getPrice());
+        assertEquals(expected, burger.getReceipt());
+    }
+
+    @Test
+    public void BurgerTest() {
+        List<Bun> buns = database.availableBuns();
+        var bun = buns.get(new Random().nextInt(buns.size()));
+        List<Ingredient> ingredients = database.availableIngredients();
+        var ingredient = ingredients.get(new Random().nextInt(ingredients.size()));
+        burger.setBuns(bun);
         burger.addIngredient(ingredient);
-        burger.moveIngredient(1, 0);
-        burger.removeIngredient(1);
-
-        Mockito.when(bun.getName()).thenReturn("Флюоресцентная булка");
-        Mockito.when(ingredient.getType()).thenReturn(IngredientType.SAUCE);
-        Mockito.when(ingredient.getName()).thenReturn("Соус Spicy-X");
-        Mockito.when(burger.getPrice()).thenReturn(burgerPrice);
-
-        String expected =
-                "(==== Флюоресцентная булка ====)\r\n" +
-                        "= sauce Соус Spicy-X =\r\n" +
-                        "(==== Флюоресцентная булка ====)\r\n" +
-                        "\r\n" +
-                        "Price: 400,000000\r\n";
-
-        String actual = burger.getReceipt();
-        assertEquals("Burger created incorrectly",expected, actual);
+        assertEquals(bun.getPrice() * 2 + ingredient.getPrice(), burger.getPrice(), 0);
     }
 }
